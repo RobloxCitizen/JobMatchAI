@@ -8,11 +8,14 @@ import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import com.jobmatch.model.MatchResult;
 
 import java.io.*;
 import java.util.List;
@@ -100,7 +103,6 @@ public class MainUI extends Application {
             return null;
         }
     }
-
     private int loadRequestCount() {
         Properties props = new Properties();
         try (FileInputStream fis = new FileInputStream(CONFIG_FILE)) {
@@ -184,12 +186,12 @@ public class MainUI extends Application {
         });
 
         Button resetButton = new Button("Сбросить лимит (для теста)");
-        resetButton.setOnAction(e -> {
-            requestCount = 0;
-            saveRequestCount();
-            dialog.close();
-            start(primaryStage);
-        });
+                resetButton.setOnAction(e -> {
+                    requestCount = 0;
+                    saveRequestCount();
+                    dialog.close();
+                    start(primaryStage);
+                });
 
         vbox.getChildren().addAll(message, subscribeButton, resetButton);
         Scene scene = new Scene(vbox, 300, 200);
@@ -201,9 +203,9 @@ public class MainUI extends Application {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Выберите резюме");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Документы", "*.pdf", "*.doc", "*.docx", "*.txt")
+                new FileChooser.ExtensionFilter("PDF файлы", "*.pdf"),
+                new FileChooser.ExtensionFilter("Текстовые файлы", "*.txt")
         );
-
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
             if (file.length() > 2 * 1024 * 1024) {
@@ -212,34 +214,35 @@ public class MainUI extends Application {
             }
             requestCount++;
             saveRequestCount();
-            sendResumeToServer(file);
+            sendResumeToServer(file, sourceComboBox.getValue());
         }
     }
 
-    private void sendResumeToServer(File file) {
+    private void sendResumeToServer(File resume, String source) {
         try {
-            String url = "http://localhost:8080/api/jobmatch/match";
-
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("resume", new FileSystemResource(file));
-            body.add("source", sourceComboBox.getValue());
-
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
-
-            ResponseEntity<List> response = restTemplate.postForEntity(url, requestEntity, List.class);
-
-            if (response.getStatusCode() == HttpStatus.OK) {
-                displayResults(response.getBody());
-            } else {
-                resultArea.setText("Ошибка: " + response.getStatusCode());
+            body.add("resume", new FileSystemResource(resume));
+            body.add("source", source);
+            HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+            RestTemplate restTemplate = new RestTemplate();
+            ResponseEntity<List<MatchResult>> response = restTemplate.exchange(
+                    "http://localhost:8080/api/jobmatch/match", HttpMethod.POST, entity, new ParameterizedTypeReference<List<MatchResult>>() {}
+            );
+            List<MatchResult> matches = response.getBody();
+            StringBuilder resultText = new StringBuilder();
+            for (MatchResult match : matches) {
+                resultText.append("Вакансия: ").append(match.getVacancyTitle())
+                        .append("\nПричина: ").append(match.getReason()).append("\n\n");
             }
-
+            resultArea.setText(resultText.toString());
+        } catch (HttpServerErrorException e) {
+            e.printStackTrace();
+            resultArea.setText("Ошибка сервера: " + e.getMessage() + "\nResponse: " + e.getResponseBodyAsString());
         } catch (Exception e) {
             e.printStackTrace();
-            resultArea.setText("Ошибка при отправке файла: " + e.getMessage());
+            resultArea.setText("Ошибка при обработке резюме: " + e.getMessage());
         }
     }
 
