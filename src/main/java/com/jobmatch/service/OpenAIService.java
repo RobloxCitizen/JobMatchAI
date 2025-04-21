@@ -45,7 +45,7 @@ public class OpenAIService {
             sb.append(i + 1).append(". ").append(v.getTitle()).append(": ")
                     .append(v.getDescription()).append("\n");
         }
-        sb.append("\nВыбери 3 наиболее подходящие вакансии и объясни почему. Верни ответ в JSON-формате, содержащем массив объектов с полями 'vacancyTitle' и 'reason':\n");
+        sb.append("\nВыбери 10 наиболее подходящих вакансий и объясни почему. Верни ответ в JSON-формате, содержащем массив объектов с полями 'vacancyTitle' и 'reason':\n");
         sb.append("[\n");
         sb.append("  {\"vacancyTitle\": \"Название вакансии\", \"reason\": \"Причина соответствия\"},\n");
         sb.append("  ...\n");

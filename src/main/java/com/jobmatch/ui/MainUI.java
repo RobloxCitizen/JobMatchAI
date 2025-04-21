@@ -95,13 +95,14 @@ public class MainUI extends Application {
     }
 
     private String loadApiKey() {
-        Properties props = new Properties();
-        try (FileInputStream fis = new FileInputStream(CONFIG_FILE)) {
-            props.load(fis);
-            return props.getProperty("openai.api.key");
-        } catch (IOException e) {
-            return null;
-        }
+    //    Properties props = new Properties();
+    //    try (FileInputStream fis = new FileInputStream(CONFIG_FILE)) {
+    //        props.load(fis);
+    //        return props.getProperty("openai.api.key");
+    //    } catch (IOException e) {
+    //        return null;
+    //    }
+        return "";
     }
     private int loadRequestCount() {
         Properties props = new Properties();
@@ -220,6 +221,7 @@ public class MainUI extends Application {
 
     private void sendResumeToServer(File resume, String source) {
         try {
+            Thread.sleep(2000);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();

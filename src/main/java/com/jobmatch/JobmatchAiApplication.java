@@ -12,6 +12,6 @@ import org.springframework.context.annotation.PropertySource;
 public class JobmatchAiApplication {
     public static void main(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(JobmatchAiApplication.class, args);
-        Application.launch(MainUI.class, args);
+        //Application.launch(MainUI.class, args);
     }
 }
